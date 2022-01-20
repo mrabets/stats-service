@@ -12,20 +12,28 @@ class StatsService
 
   private
 
+  QUEUE_NAME = "dev-queue"
+
   def subsribed_visit_data
-    connection = Bunny.new
-    connection.start
+    begin
+      connection = Bunny.new
+      connection.start
 
-    channel = connection.create_channel
+      channel = connection.create_channel
 
-    queue = channel.queue "dev-queue"
+      queue = channel.queue QUEUE_NAME
+    
+      delivery_info, properties, payload = queue.pop
 
-    delivery_info, properties, payload = queue.pop
+      sleep 1
 
-    sleep 1
+      connection.close
 
-    connection.close
-
-    return payload
+      return payload
+    rescue Exception => e
+      puts e
+      
+      return nil
+    end
   end
 end
