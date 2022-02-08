@@ -1,16 +1,18 @@
-require "bunny"
+require 'bunny'
 
 class StatsService
   def call
     visit_data = subsribed_visit_data
 
-    if visit_data
-      decoded_data = ActiveSupport::JSON.decode(visit_data)
-      Visit.create!(decoded_data) 
-    end
+    return unless visit_data
+
+    decoded_data = ActiveSupport::JSON.decode(visit_data)
+    Visit.create!(decoded_data)
   end
 
   private
+
+  QUEUE_NAME = 'dev-queue'
 
   def subsribed_visit_data
     connection = Bunny.new
@@ -18,7 +20,7 @@ class StatsService
 
     channel = connection.create_channel
 
-    queue = channel.queue "dev-queue"
+    queue = channel.queue QUEUE_NAME
 
     delivery_info, properties, payload = queue.pop
 
@@ -26,6 +28,10 @@ class StatsService
 
     connection.close
 
-    return payload
+    payload
+  rescue Bunny::Exception => e
+    Rails.logger.debug e
+
+    nil
   end
 end
